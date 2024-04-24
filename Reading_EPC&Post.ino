@@ -14,19 +14,10 @@ int status = WL_IDLE_STATUS;
 char server[] = "pcr.bounceme.net";
 
 String postData;
-String postVariable = "temp=";
 
-String postData1;
-String postVariable1 = "ppm=";
-
-String postData2;
-String postVariable2 = "pressure=";
-
-String postData3;
-String postVariable3 = "tvoc=";
 String postEPC;
 
-float tag;
+String tag;
 
 WiFiClient client;
 
@@ -103,17 +94,30 @@ void loop()
       Serial.print(F("]"));
 
       //Print EPC bytes, this is a subsection of bytes from the response/msg array
+      //
+      
       Serial.print(F(" epc["));
+      tag = F(" epc[");
       for (byte x = 0 ; x < tagEPCBytes ; x++)
       {
-        if (nano.msg[31 + x] < 0x10) Serial.print(F("0")); //Pretty print
-        Serial.print(nano.msg[31 + x], HEX);
-        tag = (nano.msg[31 + x], HEX);
+        if (nano.msg[31 + x] < 0x10) {
+          tag += (F("0"));
+          Serial.print(F("0")); //Pretty print
+
+        }
+        tag += (nano.msg[31 + x]);
+        tag += F(" ");
+        Serial.print(nano.msg[31 + x]);
         Serial.print(F(" "));
+        
+        
       }
       Serial.print(F("]"));
+      tag += (F("]"));
+      
 
       Serial.println();
+      Serial.println(tag);
     }
     else if (responseType == ERROR_CORRUPT_RESPONSE)
     {
@@ -150,7 +154,7 @@ void loop()
       //tag = (temperatureC * 9.0 / 5.0) + 32.0;
       
 
-      postData = postVariable + " epc[" + tag + "]";
+      postData = postVariable + tag;
       
       
       client.println(postData.length());
