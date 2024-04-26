@@ -6,8 +6,8 @@ SoftwareSerial softSerial(2, 3); //RX, TX
 #include "SparkFun_UHF_RFID_Reader.h" //Library for controlling the M6E Nano module
 RFID nano; //Create instance
 
-char ssid[] = "Home135";
-char pass[] = "135hillsdale";
+char ssid[] = "tufts_eecs";
+char pass[] = "foundedin1883";
 
 int status = WL_IDLE_STATUS;
 
@@ -16,6 +16,7 @@ char server[] = "pcr.bounceme.net";
 String postData;
 
 String postEPC;
+String postVariable = "temp=";
 
 String tag;
 
@@ -228,7 +229,7 @@ boolean setupNano(long baudRate)
 void beginWork() {
   nano.setRegion(REGION_NORTHAMERICA); //Set to North America
 
-  nano.setReadPower(1000); //5.00 dBm. Higher values may caues USB port to brown out
+  nano.setReadPower(2700); //5.00 dBm. Higher values may caues USB port to brown out
   //Max Read TX Power is 27.00 dBm and may cause temperature-limit throttling
 
   Serial.println(F("Press a key to begin scanning for tags."));
