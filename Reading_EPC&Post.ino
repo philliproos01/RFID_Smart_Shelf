@@ -6,8 +6,8 @@ SoftwareSerial softSerial(2, 3); //RX, TX
 #include "SparkFun_UHF_RFID_Reader.h" //Library for controlling the M6E Nano module
 RFID nano; //Create instance
 
-char ssid[] = "tufts_eecs";
-char pass[] = "foundedin1883";
+char ssid[] = "Home135";
+char pass[] = "135hillsdale";
 
 int status = WL_IDLE_STATUS;
 
@@ -17,6 +17,10 @@ String postData;
 
 String postEPC;
 String postVariable = "temp=";
+
+const int MAX_TAGS = 20; // Maximum number of unique tags to store
+String uniqueTags[MAX_TAGS];
+int numUniqueTags = 0;
 
 String tag;
 
@@ -52,129 +56,151 @@ void setup()
   
 
   beginWork();
+  postData = postVariable;
 }
 
 void loop()
 {
+  postData = postVariable;
+  for (int i = 0; i < 200; i++) {
     while (status != WL_CONNECTED) {
-    Serial.print("Connection lost, attempting to re-connect to Network named: ");
-    Serial.println(ssid);
-    status = WiFi.begin(ssid, pass);
-    delay(10000);
-  }
-  
-  if (nano.check() == true) //Check to see if any new data has come in from module
-  {
-    byte responseType = nano.parseResponse(); //Break response into tag ID, RSSI, frequency, and timestamp
-
-    if (responseType == RESPONSE_IS_KEEPALIVE)
-    {
-      Serial.println(F("Scanning"));
+      Serial.print("Connection lost, attempting to re-connect to Network named: ");
+      Serial.println(ssid);
+      status = WiFi.begin(ssid, pass);
+      delay(10000);
     }
-    else if (responseType == RESPONSE_IS_TAGFOUND)
+    
+    if (nano.check() == true) //Check to see if any new data has come in from module
     {
-      //If we have a full record we can pull out the fun bits
-      int rssi = nano.getTagRSSI(); //Get the RSSI for this tag read
-
-      long freq = nano.getTagFreq(); //Get the frequency this tag was detected at
-
-      long timeStamp = nano.getTagTimestamp(); //Get the time this was read, (ms) since last keep-alive message
-
-      byte tagEPCBytes = nano.getTagEPCBytes(); //Get the number of bytes of EPC from response
-
-      Serial.print(F(" rssi["));
-      Serial.print(rssi);
-      Serial.print(F("]"));
-
-      Serial.print(F(" freq["));
-      Serial.print(freq);
-      Serial.print(F("]"));
-
-      Serial.print(F(" time["));
-      Serial.print(timeStamp);
-      Serial.print(F("]"));
-
-      //Print EPC bytes, this is a subsection of bytes from the response/msg array
-      //
-      
-      Serial.print(F(" epc["));
-      tag = F(" epc[");
-      for (byte x = 0 ; x < tagEPCBytes ; x++)
+      byte responseType = nano.parseResponse(); //Break response into tag ID, RSSI, frequency, and timestamp
+  
+      if (responseType == RESPONSE_IS_KEEPALIVE)
       {
-        if (nano.msg[31 + x] < 0x10) {
-          tag += (F("0"));
-          Serial.print(F("0")); //Pretty print
-
+        Serial.println(F("Scanning"));
+      }
+      else if (responseType == RESPONSE_IS_TAGFOUND)
+      {
+        //If we have a full record we can pull out the fun bits
+        int rssi = nano.getTagRSSI(); //Get the RSSI for this tag read
+  
+        long freq = nano.getTagFreq(); //Get the frequency this tag was detected at
+  
+        long timeStamp = nano.getTagTimestamp(); //Get the time this was read, (ms) since last keep-alive message
+  
+        byte tagEPCBytes = nano.getTagEPCBytes(); //Get the number of bytes of EPC from response
+  
+        Serial.print(F(" rssi["));
+        Serial.print(rssi);
+        Serial.print(F("]"));
+  
+        Serial.print(F(" freq["));
+        Serial.print(freq);
+        Serial.print(F("]"));
+  
+        Serial.print(F(" time["));
+        Serial.print(timeStamp);
+        Serial.print(F("]"));
+  
+        //Print EPC bytes, this is a subsection of bytes from the response/msg array
+        //
+        
+        Serial.print(F(" epc["));
+        tag = F(" epc[");
+        for (byte x = 0 ; x < tagEPCBytes ; x++)
+        {
+          if (nano.msg[31 + x] < 0x10) {
+            tag += (F("0"));
+            Serial.print(F("0")); //Pretty print
+  
+          }
+          tag += (nano.msg[31 + x]);
+          tag += F(" ");
+          Serial.print(nano.msg[31 + x]);
+          Serial.print(F(" "));
+          
+          
         }
-        tag += (nano.msg[31 + x]);
-        tag += F(" ");
-        Serial.print(nano.msg[31 + x]);
-        Serial.print(F(" "));
+        Serial.print(F("]"));
+        tag += (F("]"));
         
-        
-      }
-      Serial.print(F("]"));
-      tag += (F("]"));
-      
-
-      Serial.println();
-      Serial.println(tag);
-    }
-    else if (responseType == ERROR_CORRUPT_RESPONSE)
-    {
-      Serial.println("Bad CRC");
-    }
-    else
-    {
-      //Unknown response
-      Serial.print("Unknown error");
-    }
-  }
-
-   if (client.connect(server, 80)) {
-    client.println("POST /test/RFID/post.php HTTP/1.2");
-    client.println("Host: pcr.bounceme.net");
-    client.println("Content-Type: application/x-www-form-urlencoded");
-    client.print("Content-Length: ");
-    
-    /*
-    Serial.print(F(" epc["));
-    byte tagEPCBytes = nano.getTagEPCBytes();
-    for (byte x = 0 ; x < tagEPCBytes ; x++)
-      {
-      if (nano.msg[31 + x] < 0x10) Serial.print(F("0")); //Pretty print
-      //postEPC = "1";
-      Serial.print(nano.msg[31 + x], HEX);
-      Serial.print(F(" "));
-      }
-      Serial.print(F("]"));
-
-      Serial.println();*/
-      //postData = postVariable + postEPC;
-     
-      //tag = (temperatureC * 9.0 / 5.0) + 32.0;
-      
-
-      postData = postVariable + tag;
-      
-      
-      client.println(postData.length());
-      client.println();
-      client.print(postData);
-    /*client.println(postData1.length());
-    client.println();
-    client.print(postData1);
-    client.println(postData2.length());
-    client.println();
-    client.print(postData2);
-    client.println(postData3.length());
-    client.println();
-    client.print(postData3);*/
-    
-  }
-
-
+        bool isUnique = true;
+        for (int i = 0; i < numUniqueTags; i++) {
+          if (uniqueTags[i] == tag) {
+            isUnique = false;
+            break;
+          }
+        }
   
+        if (isUnique) {
+          // Add the tag to the unique tags array
+          uniqueTags[numUniqueTags++] = tag;
+  
+          // Append the tag to the postData string
+          postData += tag + ",";
+  
+          Serial.println(tag);
+        }
+  
+        //Serial.println();
+        //Serial.println(tag);
+      }
+      else if (responseType == ERROR_CORRUPT_RESPONSE)
+      {
+        Serial.println("Bad CRC");
+      }
+      else
+      {
+        //Unknown response
+        Serial.print("Unknown error");
+      }
+    }
+  
+     if (client.connect(server, 80)) {
+      client.println("POST /test/RFID/post.php HTTP/1.2");
+      client.println("Host: pcr.bounceme.net");
+      client.println("Content-Type: application/x-www-form-urlencoded");
+      client.print("Content-Length: ");
+      
+      /*
+      Serial.print(F(" epc["));
+      byte tagEPCBytes = nano.getTagEPCBytes();
+      for (byte x = 0 ; x < tagEPCBytes ; x++)
+        {
+        if (nano.msg[31 + x] < 0x10) Serial.print(F("0")); //Pretty print
+        //postEPC = "1";
+        Serial.print(nano.msg[31 + x], HEX);
+        Serial.print(F(" "));
+        }
+        Serial.print(F("]"));
+  
+        Serial.println();*/
+        
+       
+        //tag = (temperatureC * 9.0 / 5.0) + 32.0;
+        
+        
+        
+        
+        
+        client.println(postData.length());
+        client.println();
+        client.print(postData);
+      /*client.println(postData1.length());
+      client.println();
+      client.print(postData1);
+      client.println(postData2.length());
+      client.println();
+      client.print(postData2);
+      client.println(postData3.length());
+      client.println();
+      client.print(postData3);*/
+      
+    } 
+  }
+  for (int i = 0; i < MAX_TAGS; i++) {
+     uniqueTags[i] = "";
+  }
+  numUniqueTags = 0;
 }
 
 //Gracefully handles a reader that is already configured and already reading continuously
